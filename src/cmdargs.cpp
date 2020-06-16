@@ -9,7 +9,7 @@ using namespace std;
 CmdArgs::CmdArgs(int argc, char** argv ){
 	int c;
 	loglevel = spdlog::level::info;
-	while ((c = getopt (argc, argv, "d:p:b:h")) != -1){
+	while ((c = getopt (argc, argv, "d:a:h")) != -1){
 		switch (c){
 			case 'd':
 			    if( strcmp("trace", optarg) == 0){
@@ -23,11 +23,17 @@ CmdArgs::CmdArgs(int argc, char** argv ){
                     exit(0);
                 }
 			    break;
+            case 'a':
+                alsadev = std::string( optarg);
+                break;
 			case 'h':
 				cout << "hotword" << endl;
 				cout << "   -d [LEVEL]      : set debug level (trace, info, debug)" << endl;
+				cout << "   -a ALSADEV      : set ALSA device (default='hw:0')" << endl;
 				exit(0);
 				break;
 		}
 	}
+    
+
 }

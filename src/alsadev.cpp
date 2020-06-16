@@ -6,17 +6,25 @@
 // simple.
 #define FUNC_TRACE spdlog::trace("{}", __PRETTY_FUNCTION__);
 
-snd_pcm_t *_adev;
+snd_pcm_t *_capdev;
+snd_async_handler_t *capcb;
+
+snd_pcm_t *_playdev;
 using namespace std;
-bool alsadev_open_rec(const char *name){
+
+bool _init_params( snd_pcm_t* _adev ){
     int err;
     snd_pcm_hw_params_t *hw_params;
 	snd_pcm_format_t format = SND_PCM_FORMAT_S16_LE;
-
-    if ((err = snd_pcm_open (&_adev, name , SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-        spdlog::error( "Can't open alsa device {} [{}]", name, snd_strerror (err));
-        return false;
-    }
+	// *_INTERLEAVED: data is represented in frames of one left and right sample only
+	// *_NONINTERLEAVED: data is represented as 'period' samples, first n left samples followed by n right samples. 'period' is 2*n
+	// *_RW_*: access using snd_pcm_[read, write]
+	// *_MMAP_*: acces writing to buffer pointer
+	snd_pcm_access_t access = SND_PCM_ACCESS_RW_INTERLEAVED;
+    unsigned int rate = 48000;
+    int periods = 2;
+    snd_pcm_uframes_t buffersize = 48000; // size in frames
+    
     if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0) {
         spdlog::error( "Can't alloc HW param struct [{}]", snd_strerror (err));
         return false;
@@ -26,130 +34,111 @@ bool alsadev_open_rec(const char *name){
         spdlog::error( "Can't init HW param struct [{}]", snd_strerror (err));
         return false;
     }
-    if ((err = snd_pcm_hw_params_set_access ( _adev, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+
+    // TODO: for capture we need NONINTERLEAVED
+    if ((err = snd_pcm_hw_params_set_access ( _adev, hw_params, access )) < 0) {
         spdlog::error( "Can't set access type [{}]", snd_strerror (err));
         return false;
     }
-return true;
+    if ((err = snd_pcm_hw_params_set_format (_adev, hw_params, format)) < 0) {
+        spdlog::error( "Can't set format [{}]", snd_strerror (err));
+        return false;
+    }
+    // cout << "Format width=" << snd_pcm_format_width(format) << endl;
+
+    if ((err = snd_pcm_hw_params_set_rate_near (_adev, hw_params, &rate, 0)) < 0) {        
+        spdlog::error( "Can't set rate [{}]", snd_strerror (err));
+        return false;
+    }
+    if ((err = snd_pcm_hw_params_set_channels (_adev, hw_params, 2)) < 0) {
+        spdlog::error( "Can't set channels [{}]", snd_strerror (err));
+        return false;
+    }
+        if (snd_pcm_hw_params_set_periods(_adev, hw_params, periods, 0) < 0) {
+        spdlog::error( "Can't set periods [{}]", snd_strerror (err));
+        return false;
+    }
+    // set buffer size in frames
+    if (snd_pcm_hw_params_set_buffer_size(_adev, hw_params, buffersize ) < 0) {
+        spdlog::error( "Can't set buffer size [{}]", snd_strerror (err));
+        return false;
+    }
+
+    if ((err = snd_pcm_hw_params (_adev, hw_params)) < 0) {
+        spdlog::error( "Can't set HW params  [{}]", snd_strerror (err));
+        return false;
+    }
+    snd_pcm_hw_params_free (hw_params);
+    if ((err = snd_pcm_prepare (_adev)) < 0) {
+        spdlog::error( "Can't prepare cpature device [{}]", snd_strerror (err));
+        return false;
+    }
+
+    spdlog::debug( "ALSA HW params configured" );
+    return true;
 }
 
-bool alsadev_open_play(const char *name) {
-  int i;
-  int err;
-  snd_pcm_hw_params_t *hw_params;
+bool alsadev_open_capture( std::string adev ){
+    int err;
+    
+    //  mode = 0 - standard (block?), SND_PCM_NONBLOCK, SND_PCM_ASYNC (sigio usage)    
+    // TODO: switch to SND_PCM_ASYNC and utilize sigio
+    if ((err = snd_pcm_open (&_capdev, adev.c_str() , SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+        spdlog::error( "Can't open alsa device {} [{}]", adev.c_str(), snd_strerror (err));
+        return false;
+    }
+    spdlog::debug("Opened {}", adev);
+    err = _init_params( _capdev );
 
-  if (name == NULL) {
-    // Try to open the default device
-    // err = snd_pcm_open(&_adev, "plughw:0,0", SND_PCM_STREAM_PLAYBACK, 0);
-    err = snd_pcm_open(&_adev, "hw:0,0", SND_PCM_STREAM_PLAYBACK, 0);
-  } else {
-    // Open the device we were told to open.
-    err = snd_pcm_open(&_adev, name, SND_PCM_STREAM_PLAYBACK, 0);
-  }
-
-  // Check for error on open.
-  if (err < 0) {
-    cout << "Init: cannot open audio device " << name << " ("
-         << snd_strerror(err) << ")" << endl;
-    return false;
-  } else {
-    cout << "Audio device opened successfully." << endl;
-  }
-
-  // Allocate the hardware parameter structure.
-  if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
-    cout << "Init: cannot allocate hardware parameter structure ("
-         << snd_strerror(err) << ")" << endl;
-    return false;
-  }
-
-  if ((err = snd_pcm_hw_params_any(_adev, hw_params)) < 0) {
-    cout << "Init: cannot initialize hardware parameter structure ("
-         << snd_strerror(err) << ")" << endl;
-    return false;
-  }
-
-  // Enable resampling.
-  unsigned int resample = 1;
-  err = snd_pcm_hw_params_set_rate_resample(_adev, hw_params, resample);
-  if (err < 0) {
-    cout << "Init: Resampling setup failed for playback: " << snd_strerror(err)
-         << endl;
+#ifdef USE_CALLBACK
+    if ((err = snd_async_add_pcm_handler( &capcb, _capdev,  MyCallback, NULL)) < 0 ){
+        spdlog::error( "Can't install callback");
+        return false;
+    }
+#endif
     return err;
-  }
+}
 
-  // Set access to RW interleaved.
-  if ((err = snd_pcm_hw_params_set_access(_adev, hw_params,
-                                          SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
-    cout << "Init: cannot set access type (" << snd_strerror(err) << ")"
-         << endl;
-    return false;
-  }
+bool alsadev_open_play( std::string adev){
+    int err;
+    
+    //  mode = 0 - standard (block?), SND_PCM_NONBLOCK, SND_PCM_ASYNC (sigio usage)    
+    // TODO: switch to SND_PCM_ASYNC and utilize sigio
+    if ((err = snd_pcm_open (&_playdev, adev.c_str(), SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+        spdlog::error( "Can't open alsa device {} [{}]", adev.c_str(), snd_strerror (err));
+        return false;
+    }
+    spdlog::debug("Opened {}", adev);
+    return _init_params( _playdev );
+}
 
-  if ((err = snd_pcm_hw_params_set_format(_adev, hw_params,
-                                          SND_PCM_FORMAT_S16_LE)) < 0) {
-    cout << "Init: cannot set sample format (" << snd_strerror(err) << ")"
-         << endl;
-    return false;
-  }
+int alsadev_capture(void *buf, int num ){
+    int err;
+    if ((err = snd_pcm_readi( _capdev, buf, num)) < 0){
+        spdlog::error( "Error, reading from ALSA [{}]", snd_strerror (err));
+    }
+    spdlog::debug("Buffer [{} / {} B] captured", err, num);
+    return err;
+}
 
-  // Set channels to stereo (2).
-  if ((err = snd_pcm_hw_params_set_channels(_adev, hw_params, 2)) < 0) {
-    cout << "Init: cannot set channel count (" << snd_strerror(err) << ")"
-         << endl;
-    return false;
-  }
+int  alsadev_play( void* buf, int num){
+    int err;
+    if ((err = snd_pcm_writei( _playdev, buf, num)) < 0){
+        spdlog::error( "Error, writing to ALSA [{}]", snd_strerror (err));
+        snd_pcm_prepare( _playdev );
+    }
+    spdlog::debug("Buffer [{} / {} B] played", err, num);
+    return err;
+}
 
-  // Set sample rate.
-  unsigned int actualRate = 44100;
-  if ((err = snd_pcm_hw_params_set_rate_near(_adev, hw_params,
-                                             &actualRate, 0)) < 0) {
-    cout << "Init: cannot set sample rate to 44100. (" << snd_strerror(err)
-         << ")" << endl;
-    return false;
-  }
-  if (actualRate < 44100) {
-    cout << "Init: sample rate does not match requested rate. ("
-         << "44100 requested, " << actualRate << " acquired)" << endl;
-  }
-
-  // Apply the hardware parameters that we've set.
-  if ((err = snd_pcm_hw_params(_adev, hw_params)) < 0) {
-    cout << "Init: cannot set parameters (" << snd_strerror(err) << ")" << endl;
-    return false;
-  } else {
-    cout << "Audio device parameters have been set successfully." << endl;
-  }
-
-  // Get the buffer size.
-  snd_pcm_uframes_t bufferSize;
-  snd_pcm_hw_params_get_buffer_size(hw_params, &bufferSize);
-  // If we were going to do more with our sound device we would want to store
-  // the buffer size so we know how much data we will need to fill it with.
-  cout << "Init: Buffer size = " << bufferSize << " frames." << endl;
-
-  // Display the bit size of samples.
-  cout << "Init: Significant bits for linear samples = "
-       << snd_pcm_hw_params_get_sbits(hw_params) << endl;
-
-  // Free the hardware parameters now that we're done with them.
-  snd_pcm_hw_params_free(hw_params);
-
-  // Prepare interface for use.
-  if ((err = snd_pcm_prepare(_adev)) < 0) {
-    cout << "Init: cannot prepare audio interface for use ("
-         << snd_strerror(err) << ")" << endl;
-    return false;
-  } else {
-    cout << "Audio device has been prepared for use." << endl;
-  }
-
+bool alsadev_close_capture() {
+  snd_pcm_close( _capdev);
+  spdlog::debug("Capture device closed");
   return true;
 }
 
-bool alsadev_close() {
-  snd_pcm_close(_adev);
-  cout << "Audio device has been uninitialized." << endl;
+bool alsadev_close_play() {
+  snd_pcm_close( _playdev);
+  spdlog::debug("Playback device closed");
   return true;
 }
-

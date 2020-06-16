@@ -44,6 +44,10 @@ documentation: $(DOCDIR)
 beautify:
 	clang-format -i -sytle=google ./src/*
 
+# create compile_commands.json file by running 'bear' as a wrapper for make
+compile_commands:
+	bear make
+
 install: $(BIN)
 ifneq (0, $(shell id -u))
 	@echo "Installation requires to be root !"
@@ -59,4 +63,5 @@ tag:
 
 clean:
 	rm -rf obj
+	rm -rf compile_commands.json
 	rm -rf ${BIN}

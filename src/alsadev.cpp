@@ -21,9 +21,13 @@ bool _init_params( snd_pcm_t* _adev ){
 	// *_RW_*: access using snd_pcm_[read, write]
 	// *_MMAP_*: acces writing to buffer pointer
 	snd_pcm_access_t access = SND_PCM_ACCESS_RW_INTERLEAVED;
-    unsigned int rate = 48000;
+    // unsigned int rate = 48000;
+    unsigned int rate = 16000;
+    int channels = 1;
+    // int periods = 2;
     int periods = 2;
-    snd_pcm_uframes_t buffersize = 48000; // size in frames
+    // snd_pcm_uframes_t buffersize = 48000; // size in frames
+    snd_pcm_uframes_t buffersize = 256; // size in frames -> is same as rate we have 1s buff
     
     if ((err = snd_pcm_hw_params_malloc (&hw_params)) < 0) {
         spdlog::error( "Can't alloc HW param struct [{}]", snd_strerror (err));
@@ -50,7 +54,7 @@ bool _init_params( snd_pcm_t* _adev ){
         spdlog::error( "Can't set rate [{}]", snd_strerror (err));
         return false;
     }
-    if ((err = snd_pcm_hw_params_set_channels (_adev, hw_params, 2)) < 0) {
+    if ((err = snd_pcm_hw_params_set_channels (_adev, hw_params, channels)) < 0) {
         spdlog::error( "Can't set channels [{}]", snd_strerror (err));
         return false;
     }
@@ -117,7 +121,7 @@ int alsadev_capture(void *buf, int num ){
     if ((err = snd_pcm_readi( _capdev, buf, num)) < 0){
         spdlog::error( "Error, reading from ALSA [{}]", snd_strerror (err));
     }
-    spdlog::debug("Buffer [{} / {} B] captured", err, num);
+    spdlog::trace("Buffer [{} / {} B] captured", err, num);
     return err;
 }
 
@@ -127,7 +131,7 @@ int  alsadev_play( void* buf, int num){
         spdlog::error( "Error, writing to ALSA [{}]", snd_strerror (err));
         snd_pcm_prepare( _playdev );
     }
-    spdlog::debug("Buffer [{} / {} B] played", err, num);
+    spdlog::trace("Buffer [{} / {} B] played", err, num);
     return err;
 }
 

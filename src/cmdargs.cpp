@@ -29,7 +29,7 @@ CmdArgs::CmdArgs(int argc, char** argv ){
 			case 'h':
 				cout << "hotword" << endl;
 				cout << "   -d [LEVEL]      : set debug level (trace, info, debug)" << endl;
-				cout << "   -a ALSADEV      : set ALSA device (default='hw:0')" << endl;
+				cout << "   -a ALSADEV      : set ALSA device (default='respeaker')" << endl;
 				exit(0);
 				break;
 		}

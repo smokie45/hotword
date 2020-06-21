@@ -6,10 +6,21 @@ BIN=hotword
 BINOBJ = hotword.o cmdargs.o alsadev.o
 # spdlog can include (bundled) fmt or have it external. In case of external (archlinux), 
 # SPDLOG_FMT_EXTERNAL must be defined and the fmt library linked additionally 
-CFLAGS=-pthread -DSPDLOG_FMT_EXTERNAL
+CFLAGS=-pthread -DSPDLOG_FMT_EXTERNAL 
 CXXFLAGS=-pthread 
+# Note: -Wl,-rpath=/a/library/no/in/default/path : adds a path to the lib into binary
 LDFLAGS=
-LDLIBS=-lstdc++ -lspdlog -lfmt -lpthread -lasound
+LDLIBS=-lstdc++ -lspdlog -lfmt -lpthread -lasound 
+
+CFLAGS+=-I external/porcupine/include
+LDFLAGS=-L external/porcupine/lib/linux/x86_64/ 
+LDFLAGS+=-Wl,-rpath=/home/smokie/myDev/hotword/external/porcupine/lib/linux/x86_64
+LDLIBS+=-lpv_porcupine 
+
+CFLAGS+=-I external/libfvad/include
+LDFLAGS+=-L /home/smokie/myDev/hotword/external/libfvad/src/.libs
+LDFLAGS+=-Wl,-rpath=/home/smokie/myDev/hotword/external/libfvad/src/.libs
+LDLIBS+=-lfvad
 
 
 CC  = $(CROSS_COMPILE)gcc
@@ -63,5 +74,7 @@ tag:
 
 clean:
 	rm -rf obj
-	rm -rf compile_commands.json
 	rm -rf ${BIN}
+	rm -rf compile_commands.json
+	rm -rf *.plist
+	rm -rf .clangd

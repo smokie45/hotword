@@ -1,0 +1,28 @@
+
+# ReSpeaker Mic Array has 6 channels
+# ch 0: processed audio
+# ch 1: mic 1 raw
+# ch 2: mic 2 raw
+# ch 3: mic 3 raw
+# ch 4: mic 4 raw
+# ch 6: with merged playback
+#
+
+# source to extract just one channel processed audio
+pcm.respeaker {
+    # create a new plug to ...
+    type plug
+    slave.pcm {
+       # ... "route" audio ...
+       type route
+       # ... from this slave audio device ...
+       slave.pcm {
+            type hw;
+            card "ArrayUAC10"
+        }
+        # ... which has 6 channels ...
+        slave.channels 6
+        # ... and map slave ch0 -> plug ch 0
+        ttable.0.0 1
+    }
+}

@@ -3,14 +3,14 @@
 # Depends: clang-formater, doxygen, ctags 
 #
 BIN=hotword
-BINOBJ = hotword.o cmdargs.o alsadev.o
+BINOBJ = hotword.o cmdargs.o audio.o timer.o
 # spdlog can include (bundled) fmt or have it external. In case of external (archlinux), 
 # SPDLOG_FMT_EXTERNAL must be defined and the fmt library linked additionally 
 CFLAGS=-pthread -DSPDLOG_FMT_EXTERNAL 
 CXXFLAGS=-pthread 
 # Note: -Wl,-rpath=/a/library/no/in/default/path : adds a path to the lib into binary
 LDFLAGS=
-LDLIBS=-lstdc++ -lspdlog -lfmt -lpthread -lasound 
+LDLIBS=-lstdc++ -lspdlog -lfmt -lpthread -lasound -lsndfile
 
 CFLAGS+=-I external/porcupine/include
 LDFLAGS=-L external/porcupine/lib/linux/x86_64/ 
@@ -56,7 +56,8 @@ beautify:
 	clang-format -i -sytle=google ./src/*
 
 # create compile_commands.json file by running 'bear' as a wrapper for make
-compile_commands:
+# clean build required to catch all dependencies
+compile_commands: clean
 	bear make
 
 install: $(BIN)
@@ -78,3 +79,4 @@ clean:
 	rm -rf compile_commands.json
 	rm -rf *.plist
 	rm -rf .clangd
+	rm -rf tags

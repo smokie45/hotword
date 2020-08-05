@@ -64,6 +64,11 @@ ifneq (0, $(shell id -u))
 endif
 	mkdir -p $(DESTDIR)/usr/bin
 	install -Dm755 "$(BIN)" "$(DESTDIR)/usr/bin"
+	mkdir -p $(DESTDIR)/usr/share/hotword/res
+	install -m 644 res/beep_hi.wav $(DESTDIR)/usr/share/hotword/res/beep_hi.wav
+	install -m 644 res/beep_lo.wav $(DESTDIR)/usr/share/hotword/res/beep_lo.wav
+	install -m 644 res/beep_error.wav $(DESTDIR)/usr/share/hotword/res/beep_error.wav
+
 
 .PHONY : tags clean beautify
 

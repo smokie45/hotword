@@ -12,8 +12,8 @@ using namespace std;
 
 // initialize the porcupine library
 pv_porcupine_t*  pp_init(){
-    const char *model_path = "external/porcupine/lib/common/porcupine_params.pv";
-    const char *keyword_path = "external/porcupine/resources/keyword_files/linux/picovoice_linux.ppn";
+    const char *model_path   = "/usr/share/porcupine/porcupine_params.pv";
+    const char *keyword_path = "/usr/share/porcupine/keyword_files/picovoice_linux.ppn";
     const float sensitivity = 0.5f;
 
     pv_porcupine_t *handle;
@@ -97,7 +97,7 @@ int main(int argv, char **argc) {
             case DETECT:
                 if( pp_detect( pp, pcm ) == 1 ){
                     // porcupine detected hotword ...
-                    player.playFile ("res/beep_hi.wav");
+                    player.playFile ("/usr/share/hotword/res/beep_hi.wav");
                     state = RECORD;
                     frame_length = 480;     // for fvad
                     fvad_reset( vad );
@@ -112,7 +112,7 @@ int main(int argv, char **argc) {
                 udp.send( pcm, frame_length );
                 if( timeout_timer.isElapsed( 5 ) ){
                     spdlog::info("Stop recording due to timeout");
-                    player.playFile ("res/beep_lo.wav");
+                    player.playFile ("/usr/share/hotword/res/beep_lo.wav");
                     state = DETECT;
                     frame_length = 512;     // for porcupine
                     break;
@@ -125,7 +125,7 @@ int main(int argv, char **argc) {
                     // voice inactive
                     if( novoice_timer.isElapsed( 2) ){
                         spdlog::info("Stop recording due to voice inactivity");
-                        player.playFile ("res/beep_lo.wav");
+                        player.playFile ("/usr/share/hotword/res/beep_lo.wav");
                         state = DETECT;
                         frame_length = 512;     // for porcupine
                         novoice_timer.stop();

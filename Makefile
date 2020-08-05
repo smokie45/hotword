@@ -68,6 +68,7 @@ endif
 	install -m 644 res/beep_hi.wav $(DESTDIR)/usr/share/hotword/res/beep_hi.wav
 	install -m 644 res/beep_lo.wav $(DESTDIR)/usr/share/hotword/res/beep_lo.wav
 	install -m 644 res/beep_error.wav $(DESTDIR)/usr/share/hotword/res/beep_error.wav
+	install -m 644 res/respeaker.asoundrc $(DESTDIR)/usr/share/hotword/res/respeaker.asoundrc
 
 
 .PHONY : tags clean beautify

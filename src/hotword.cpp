@@ -4,6 +4,7 @@
 #include "pv_porcupine.h"
 #include "fvad.h"
 #include "timer.h"
+#include "net.h"
 
 using namespace std;
 
@@ -84,6 +85,7 @@ int main(int argv, char **argc) {
     enum State { DETECT, RECORD }state = DETECT;
     Fvad *vad = fvad_new();
     Timer timeout_timer, novoice_timer;
+    Net udp( "localhost", 12345);
     while( true ){ 
         // fetch some audio samples
         int num = mic.capture( pcm, frame_length);
@@ -106,6 +108,8 @@ int main(int argv, char **argc) {
                 }
                 break;
             case RECORD:
+                // send pcm data to remote udp server
+                udp.send( pcm, frame_length );
                 if( timeout_timer.isElapsed( 5 ) ){
                     spdlog::info("Stop recording due to timeout");
                     player.playFile ("res/beep_lo.wav");

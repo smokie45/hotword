@@ -10,7 +10,9 @@ dependency.
 ## Depends:
     spdlog - C++ debugging library
     alsa
-    porcupine
+    libsndfile
+    porcupine: https://github.com/Picovoice/porcupine
+    libfvad: https://github.com/dpirch/libfvad
 
 # TODO:
     spdlog compiles slowly
@@ -24,3 +26,5 @@ dependency.
     https://gist.github.com/ghedo/963382/815c98d1ba0eda1b486eb9d80d9a91a81d995283
 
     arecord -c2 -v -f S16_LE -D "hw:0" /tmp/test.wav
+    gst-launch-1.0 udpsrc port=12345 ! rawaudioparse use-sink-caps=false format=pcm pcm-format=s16le sample-rate=16000 num-channels=1 ! queue ! audioconvert ! audioresample ! filesink location=/tmp/udp.wav
+

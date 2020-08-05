@@ -3,7 +3,7 @@
 # Depends: clang-formater, doxygen, ctags 
 #
 BIN=hotword
-BINOBJ = hotword.o cmdargs.o audio.o timer.o
+BINOBJ = hotword.o cmdargs.o audio.o timer.o net.o
 # spdlog can include (bundled) fmt or have it external. In case of external (archlinux), 
 # SPDLOG_FMT_EXTERNAL must be defined and the fmt library linked additionally 
 CFLAGS=-pthread -DSPDLOG_FMT_EXTERNAL 
@@ -12,16 +12,13 @@ CXXFLAGS=-pthread
 LDFLAGS=
 LDLIBS=-lstdc++ -lspdlog -lfmt -lpthread -lasound -lsndfile
 
-CFLAGS+=-I external/porcupine/include
-LDFLAGS=-L external/porcupine/lib/linux/x86_64/ 
-LDFLAGS+=-Wl,-rpath=/home/smokie/myDev/hotword/external/porcupine/lib/linux/x86_64
+# external dependencies can be temporarily added to the ./external dir and used without install
+# CFLAGS+=-I external/porcupine/include
+# LDFLAGS=-L external/porcupine/lib/linux/x86_64/ 
+# LDFLAGS+=-Wl,-rpath=/home/smokie/myDev/hotword/external/porcupine/lib/linux/x86_64
 LDLIBS+=-lpv_porcupine 
 
-CFLAGS+=-I external/libfvad/include
-LDFLAGS+=-L /home/smokie/myDev/hotword/external/libfvad/src/.libs
-LDFLAGS+=-Wl,-rpath=/home/smokie/myDev/hotword/external/libfvad/src/.libs
 LDLIBS+=-lfvad
-
 
 CC  = $(CROSS_COMPILE)gcc
 CXX = $(CROSS_COMPILE)g++

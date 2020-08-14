@@ -26,3 +26,12 @@ pcm.respeaker {
         ttable.0.0 1
     }
 }
+# source to extract just one channel processed audio
+pcm.respeaker_play {
+    # create a new plug to ...
+    type plug
+    slave.pcm {
+        type hw;
+        card "ArrayUAC10"
+    }
+}

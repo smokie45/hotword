@@ -13,7 +13,7 @@ using namespace std;
 // initialize the porcupine library
 pv_porcupine_t*  pp_init(){
     const char *model_path   = "/usr/share/porcupine/porcupine_params.pv";
-    const char *keyword_path = "/usr/share/porcupine/keyword_files/picovoice_linux.ppn";
+    const char *keyword_path = "/usr/share/porcupine/keyword_files/picovoice.ppn";
     const float sensitivity = 0.5f;
 
     pv_porcupine_t *handle;
@@ -56,16 +56,16 @@ int pp_detect( pv_porcupine_t* pp, const int16_t* pcm){
 int main(int argv, char **argc) {
 
     // parse cmdline arguments
-    CmdArgs* arg = new CmdArgs( argv, argc );
+    CmdArgs* cfg = new CmdArgs( argv, argc );
     // set debug level
-    spdlog::set_level( arg->loglevel );
+    spdlog::set_level( cfg->loglevel );
     spdlog::set_pattern("# [%L] %v");
+    cout << "hotword " << VERSION << endl;
+    cout << "ALSA devices, capture='" << cfg->micdev << "', playback='" << cfg->spkdev << "'" << endl;
 
-    cout << "Hotword detection on ALSA device '" << arg->micdev << "'" << endl;
-
-    Audio mic( arg->micdev, Audio::CAPTURE, 16000, 1);
+    Audio mic( cfg->micdev, Audio::CAPTURE, 16000, 1);
     // Audio player( "respeaker_play", Audio::PLAYBACK, 44100, 2);
-    Audio player( arg->spkdev, Audio::PLAYBACK, 44100, 2);
+    Audio player( cfg->spkdev, Audio::PLAYBACK, 44100, 2);
 
     if( !mic.open() ){
         spdlog::error("Failed to open mic !");

@@ -8,8 +8,8 @@ using namespace std;
 
 CmdArgs::CmdArgs(int argc, char** argv ){
 	int c;
-	loglevel = spdlog::level::info;
-	while ((c = getopt (argc, argv, "d:m:s:h")) != -1){
+	// let cmdargs overwrite the defaults
+	while ((c = getopt (argc, argv, "d:c:m:s:h")) != -1){
 		switch (c){
 			case 'd':
 			    if( strcmp("trace", optarg) == 0){
@@ -23,6 +23,9 @@ CmdArgs::CmdArgs(int argc, char** argv ){
                     exit(0);
                 }
 			    break;
+            case 'c':
+                cfgfile = std::string( optarg);
+                break;
             case 'm':
                 micdev = std::string( optarg);
                 break;
@@ -31,6 +34,7 @@ CmdArgs::CmdArgs(int argc, char** argv ){
                 break;
 			case 'h':
 				cout << "hotword" << endl;
+//				cout << "   -c FILE         : read config file" << endl;
 				cout << "   -d [LEVEL]      : set debug level (trace, info, debug)" << endl;
 				cout << "   -m ALSADEV      : set micrpohone ALSA device (default='respeaker')" << endl;
 				cout << "   -s ALSADEV      : set speaker ALSA device (default='respeaker_speaker')" << endl;
